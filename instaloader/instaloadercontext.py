@@ -411,7 +411,31 @@ class InstaloaderContext:
                 self._rate_controller.wait_before_query('iphone')
             if is_other_query:
                 self._rate_controller.wait_before_query('other')
-            resp = sess.get('https://{0}/{1}'.format(host, path), params=params, allow_redirects=False)
+            # CUSTOM BEGIN
+            proxy_url = os.getenv("PROXY_URL")
+            proxy_resp = requests.get(
+                "https://ip.smartproxy.com/json",
+                proxies={
+                    "https": proxy_url,
+                    "http": proxy_url,
+                }, # type: ignore
+            )
+            if proxy_resp.status_code == 200:
+                ip_address = proxy_resp.json()["proxy"]["ip"]
+                print(f"Proxy IP: {ip_address}")
+            else:
+                print("Failed to get proxy IP")
+
+            resp = sess.get(
+                "https://{0}/{1}".format(host, path),
+                params=params,
+                allow_redirects=False,
+                proxies={
+                    "https": proxy_url,
+                    "http": proxy_url,
+                }, # type: ignore
+            )
+            # CUSTOM END
             if resp.status_code in self.fatal_status_codes:
                 redirect = " redirect to {}".format(resp.headers['location']) if 'location' in resp.headers else ""
                 body = ""
